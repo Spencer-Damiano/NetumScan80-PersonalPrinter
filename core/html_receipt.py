@@ -13,8 +13,8 @@ Install:
     pip install imgkit selenium webdriver-manager
     wkhtmltopdf (optional): https://wkhtmltopdf.org/downloads.html
 
-Receipt width is fixed at 72mm. Height flows naturally with content —
-character limit is the primary control over receipt length.
+Receipt size: 72mm wide x 75mm tall (fixed — always the same physical size)
+The printer has a 15mm physical header gap, so 75mm is the usable print area.
 """
 
 import os
@@ -39,14 +39,16 @@ except ImportError:
 
 # ── Printer geometry ──────────────────────────────────────────────────────────
 # NS8360 printable width: 72mm
+# Target receipt height:  75mm (printer has 15mm physical header gap)
+#
+# wkhtmltoimage works at 96 DPI by default.
 # 1mm = 3.7795px at 96 DPI — rendered at 2x for crispness:
 #   72mm × 3.7795 × 2 = 544px wide
-# Height is no longer fixed — it flows with content.
-RECEIPT_WIDTH_PX = 544
+#   75mm × 3.7795 × 2 = 567px tall
+RECEIPT_WIDTH_PX  = 544
+RECEIPT_HEIGHT_PX = 567  # 75mm at 2x
 
-# Hard character limit — this is now your primary control over receipt length.
-# Tune this number to get the physical receipt size you want.
-# 550 is the test ceiling; real tasks should be well under that.
+# Hard character limit for the description.
 DESCRIPTION_CHAR_LIMIT = 550
 
 # wkhtmltopdf binary (only needed if imgkit is being used)
@@ -69,7 +71,6 @@ def build_html(title: str, description: str, priority: int) -> str:
     """
     Return a complete HTML string for the receipt.
     Description is truncated to DESCRIPTION_CHAR_LIMIT before rendering.
-    Height is determined by content — no fixed canvas.
     """
     priority_label = PRIORITY_LABELS.get(priority, "UNKNOWN")
     timestamp      = datetime.now().strftime("%Y-%m-%d  %H:%M")
@@ -89,9 +90,13 @@ def build_html(title: str, description: str, priority: int) -> str:
     body {{
       font-family: 'Courier New', Courier, monospace;
       background: white;
-      width: {RECEIPT_WIDTH_PX}px;
-      padding: 14px 18px 10px 18px;
-      /* No fixed height — content defines the receipt length */
+      width:    {RECEIPT_WIDTH_PX}px;
+      height:   {RECEIPT_HEIGHT_PX}px;
+      overflow: hidden;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }}
 
     .border {{
@@ -108,49 +113,54 @@ def build_html(title: str, description: str, priority: int) -> str:
     }}
 
     .priority {{
-      font-size: 22px;
-      font-weight: bold;
+      font-size: 16px;
       text-align: center;
       letter-spacing: 1px;
       padding: 6px 0;
-      color: black;
     }}
 
     .description {{
-      padding: 10px 0;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 0;
+      overflow: hidden;
     }}
 
     .description p {{
-      font-size: 24px;
-      font-weight: 600;
-      line-height: 1.4;
+      font-size: 20px;
+      line-height: 1.45;
       text-align: center;
       word-wrap: break-word;
       width: 100%;
       margin: 0;
-      color: black;
     }}
 
     .timestamp {{
-      font-size: 13px;
-      font-weight: bold;
+      font-size: 14px;
       text-align: center;
-      color: black;
-      padding: 5px 0 0 0;
+      color: #555;
+      padding: 6px 0;
     }}
   </style>
 </head>
 <body>
-  <div class="border"></div>
-  <div class="title">{title}</div>
-  <div class="border"></div>
-  <div class="priority">PRIORITY: {priority_label}</div>
-  <div class="border"></div>
+  <div>
+    <div class="border"></div>
+    <div class="title">{title}</div>
+    <div class="border"></div>
+    <div class="priority">PRIORITY: {priority_label}</div>
+    <div class="border"></div>
+  </div>
 
   <div class="description"><p>{description}</p></div>
 
-  <div class="border"></div>
-  <div class="timestamp">{timestamp}</div>
+  <div>
+    <div class="border"></div>
+    <div class="timestamp">{timestamp}</div>
+    <div class="border"></div>
+  </div>
 </body>
 </html>"""
 
@@ -174,8 +184,8 @@ def _render_png_imgkit(html: str, path: str) -> str | None:
     try:
         config  = imgkit.config(wkhtmltoimage=WKHTMLTOIMAGE_PATH)
         options = {
-            "width": str(RECEIPT_WIDTH_PX),
-            # No height option — let imgkit size to content
+            "width":  str(RECEIPT_WIDTH_PX),
+            "height": str(RECEIPT_HEIGHT_PX),
             "disable-smart-width": "",
             "encoding": "UTF-8",
             "format": "png",
@@ -199,22 +209,22 @@ def _render_png_selenium(html: str, path: str) -> str | None:
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
-        # Width fixed, height large enough that content is never clipped
-        options.add_argument(f"--window-size={RECEIPT_WIDTH_PX},2000")
+        options.add_argument(f"--window-size={RECEIPT_WIDTH_PX},{RECEIPT_HEIGHT_PX + 100}")
 
+        # webdriver-manager auto-downloads the right ChromeDriver version
         service = Service(ChromeDriverManager().install())
         driver  = webdriver.Chrome(service=service, options=options)
 
+        # Write HTML to a temp file and load it
         import tempfile
         tmp_html = os.path.join(tempfile.gettempdir(), "receipt_preview", "_render.html")
         with open(tmp_html, "w", encoding="utf-8") as f:
             f.write(html)
 
         driver.get(f"file:///{tmp_html.replace(os.sep, '/')}")
-        time.sleep(0.5)
+        time.sleep(0.5)  # let the page settle
 
-        # Screenshot the body element — now that height is natural,
-        # the body's rendered height == the actual content height, no clipping.
+        # Screenshot just the body element
         body = driver.find_element(By.TAG_NAME, "body")
         body.screenshot(path)
         driver.quit()
@@ -233,9 +243,11 @@ def render_png(title: str, description: str, priority: int, path: str) -> str | 
     """
     html = build_html(title, description, priority)
 
+    # Try imgkit first (faster, no browser startup)
     result = _render_png_imgkit(html, path)
     if result:
         return result
 
+    # Fall back to Selenium
     print("  imgkit unavailable, trying Selenium...")
     return _render_png_selenium(html, path)

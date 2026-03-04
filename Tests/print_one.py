@@ -22,12 +22,12 @@ PRINTER_NAME = "POS-80"
 
 # ── Edit this to change what gets printed ─────────────────────────────────────
 RECEIPT = {
-    # "title": "Char Test 550",
-    # "description": build_ruler(limit=DESCRIPTION_CHAR_LIMIT),
-    # "priority": 0,
-    "title": "Buy Groceries",
-    "description": "Pick up milk, eggs, bread, and coffee from the store before 6pm.",
-    "priority": 1,
+    "title": "Char Test 550",
+    "description": build_ruler(limit=DESCRIPTION_CHAR_LIMIT),
+    "priority": 0,
+    # "title": "Buy Groceries",
+    # "description": "Pick up milk, eggs, bread, and coffee from the store before 6pm.",
+    # "priority": 1,
 }
 # ─────────────────────────────────────────────────────────────────────────────
 
