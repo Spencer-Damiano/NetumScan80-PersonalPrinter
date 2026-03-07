@@ -1,80 +1,56 @@
 """
-Tests/print_preview.py — Receipt print preview tool.
+tests/print_preview.py — Terminal preview tool for receipts.
 
-Renders a receipt to HTML (opens in browser) and PNG (opens in image viewer).
+Renders a receipt as plain text in the terminal using Receipt.preview().
 No printer required.
 
 Usage:
-    python Tests/print_preview.py
+    python tests/print_preview.py
 """
 
 import os
 import sys
-import tempfile
-import webbrowser
 
-# Step up one level from Tests/ to the project root so imports work
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from core.html_receipt import save_html, render_png, PRIORITY_LABELS
-from Tests.CharLimitTest import build as build_ruler
+from core.receipt import Receipt, PRIORITY_LABELS
+from tests.char_limit import build as build_ruler
 
 
-# ── Preset samples ────────────────────────────────────────────────────────────
 SAMPLES = [
     {
-        "title": "Buy Groceries",
+        "title":       "Buy Groceries",
         "description": "Pick up milk, eggs, bread, and coffee from the store before 6pm.",
-        "priority": 1,
+        "priority":    1,
     },
     {
-        "title": "Fix Login Bug",
+        "title":       "Fix Login Bug",
         "description": (
             "Users on the auth refresh endpoint are getting 401 errors after "
             "token expiry. Check the validation logic."
         ),
-        "priority": 3,
+        "priority":    3,
     },
     {
-        "title": "Plan Q3 Roadmap",
+        "title":       "Plan Q3 Roadmap",
         "description": (
             "Draft feature roadmap for Q3. Include push notifications, "
             "dark mode, and new onboarding flow."
         ),
-        "priority": 2,
+        "priority":    2,
     },
 ]
 
 
-def open_file(path: str):
-    """Open a file with the system default application (Windows)."""
-    os.startfile(path)
+def preview(title: str, description: str, priority: int) -> None:
+    """Print a receipt preview to the terminal."""
+    r = Receipt(title, description, priority)
+    print()
+    print(r.preview())
+    print()
 
 
-def preview(title: str, description: str, priority: int):
-    """Render and open a receipt as both HTML and PNG."""
-    tmp_dir = os.path.join(tempfile.gettempdir(), "receipt_preview")
-    os.makedirs(tmp_dir, exist_ok=True)
-
-    html_path = os.path.join(tmp_dir, "receipt.html")
-    png_path  = os.path.join(tmp_dir, "receipt.png")
-
-    # HTML → browser
-    save_html(title, description, priority, html_path)
-    webbrowser.open(f"file:///{html_path.replace(os.sep, '/')}")
-    print(f"  HTML: {html_path}")
-
-    # PNG → image viewer
-    result = render_png(title, description, priority, png_path)
-    if result:
-        open_file(png_path)
-        print(f"  PNG:  {png_path}")
-    else:
-        print("  PNG: skipped (see error above)")
-
-
-def char_limit_test():
-    """Prompt for a char count and render the marked lorem ruler at that length."""
+def _char_limit_test() -> None:
     print()
     try:
         count = int(input("  Enter char count to test (e.g. 75): ").strip())
@@ -83,15 +59,13 @@ def char_limit_test():
         return
 
     ruler = build_ruler(limit=count)
-    print(f"  Ruler ({count} chars): {ruler}\n")
     preview(f"Char Test {count}", ruler, 0)
 
 
-def pick_sample():
+def _pick_sample() -> str:
     print("\n  Samples:")
     for i, s in enumerate(SAMPLES):
-        label = PRIORITY_LABELS[s["priority"]]
-        print(f"    {i + 1}. [{label}] {s['title']}")
+        print(f"    {i + 1}. [{PRIORITY_LABELS[s['priority']]}] {s['title']}")
     print("    4. Char limit test")
     print("    c. Custom")
     print("    q. Quit\n")
@@ -102,7 +76,7 @@ def pick_sample():
         return "quit"
 
     if choice == "4":
-        char_limit_test()
+        _char_limit_test()
         return "continue"
 
     if choice == "c":
@@ -116,7 +90,6 @@ def pick_sample():
                 raise ValueError
         except ValueError:
             priority = 0
-        print()
         preview(title, description, priority)
         return "continue"
 
@@ -124,7 +97,6 @@ def pick_sample():
         idx = int(choice) - 1
         if 0 <= idx < len(SAMPLES):
             s = SAMPLES[idx]
-            print()
             preview(s["title"], s["description"], s["priority"])
             return "continue"
     except ValueError:
@@ -134,13 +106,12 @@ def pick_sample():
     return "continue"
 
 
-def main():
+def main() -> None:
     print("\n  Receipt Print Preview")
     print("  " + "=" * 30)
 
     while True:
-        result = pick_sample()
-        if result == "quit":
+        if _pick_sample() == "quit":
             print("  Bye!")
             break
         print("  Done. Choose another or quit.\n")

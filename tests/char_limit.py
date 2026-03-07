@@ -1,21 +1,16 @@
 """
-Tests/CharLimitTest.py — Generate a marked lorem string for char limit testing.
+tests/char_limit.py — Marked lorem string for character-limit testing.
 
 Each marker shows the exact character count at that point in the string,
 factoring in the length of the marker text itself.
 
 Usage:
-    python Tests/CharLimitTest.py
-    python Tests/CharLimitTest.py 150   ← generate only first N chars
-
-The output can be pasted directly into the print preview custom option,
-or the build() function can be imported and used programmatically.
+    python tests/char_limit.py           # generates 2000 chars
+    python tests/char_limit.py 150       # generates first 150 chars
 """
 
 import sys
-import os
 
-# ── Raw lorem source ──────────────────────────────────────────────────────────
 _LOREM = (
     "Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod "
     "tempor incididunt ut labore et dolore magna aliqua ut enim ad minim "
@@ -43,30 +38,28 @@ _LOREM = (
 def build(limit: int = 2000, interval: int = 25) -> str:
     """
     Build a lorem string with count markers every `interval` characters.
-    The marker text itself is factored into the running count so markers
-    always reflect the true position in the final string.
+
+    The marker text itself is counted so markers always reflect the true
+    position in the final string.
 
     Args:
         limit:    Stop after this many total characters (including markers).
         interval: Insert a marker every this many characters.
 
     Returns:
-        The marked string.
+        The marked string, truncated to `limit` characters.
     """
-    # Repeat lorem source if it's shorter than the requested limit
-    source = (_LOREM + " ") * (limit // len(_LOREM) + 2)
-
-    result      = ""
-    count       = 0
-    next_mark   = interval
-    source_idx  = 0
+    source     = (_LOREM + " ") * (limit // len(_LOREM) + 2)
+    result     = ""
+    count      = 0
+    next_mark  = interval
+    source_idx = 0
 
     while count < limit and source_idx < len(source):
-        char = source[source_idx]
+        char        = source[source_idx]
         source_idx += 1
-
-        result += char
-        count  += 1
+        result     += char
+        count      += 1
 
         if count == next_mark:
             marker  = f"[{next_mark}]"
@@ -78,10 +71,7 @@ def build(limit: int = 2000, interval: int = 25) -> str:
 
 
 if __name__ == "__main__":
-    # Optional: pass a char limit as a command-line argument
-    # e.g.  python Tests/CharLimitTest.py 150
     limit = int(sys.argv[1]) if len(sys.argv) > 1 else 2000
-
     ruler = build(limit)
     print(ruler)
     print(f"\nTotal chars: {len(ruler)}")

@@ -1,20 +1,19 @@
 """
 core/html_receipt.py — HTML-based receipt renderer.
 
-Renders a receipt to:
-  - An HTML file (open in browser)
-  - A PNG image (open in image viewer / send to printer)
+Renders a receipt to an HTML file and/or a PNG image.
 
 Conversion priority:
-  1. imgkit (needs wkhtmltopdf) — faster
-  2. Selenium + Chrome (auto-managed via webdriver-manager) — fallback
+    1. imgkit  — fast, requires wkhtmltopdf to be installed
+    2. Selenium — fallback, auto-manages ChromeDriver via webdriver-manager
 
 Install:
     pip install imgkit selenium webdriver-manager
     wkhtmltopdf (optional): https://wkhtmltopdf.org/downloads.html
 
-Receipt size: 72mm wide x 75mm tall (fixed — always the same physical size)
-The printer has a 15mm physical header gap, so 75mm is the usable print area.
+Receipt size: 72 mm wide × 75 mm tall (fixed — always the same physical size).
+The NS8360 has a ~15 mm physical header gap, so 75 mm is the usable print area.
+Rendered at 2× for crispness: 544 × 567 px.
 """
 
 import os
@@ -22,9 +21,9 @@ from datetime import datetime
 
 try:
     import imgkit
-    IMGKIT_AVAILABLE = True
+    _IMGKIT_AVAILABLE = True
 except ImportError:
-    IMGKIT_AVAILABLE = False
+    _IMGKIT_AVAILABLE = False
 
 try:
     from selenium import webdriver
@@ -33,25 +32,19 @@ try:
     from selenium.webdriver.common.by import By
     from webdriver_manager.chrome import ChromeDriverManager
     import time
-    SELENIUM_AVAILABLE = True
+    _SELENIUM_AVAILABLE = True
 except ImportError:
-    SELENIUM_AVAILABLE = False
+    _SELENIUM_AVAILABLE = False
 
-# ── Printer geometry ──────────────────────────────────────────────────────────
-# NS8360 printable width: 72mm
-# Target receipt height:  75mm (printer has 15mm physical header gap)
-#
-# wkhtmltoimage works at 96 DPI by default.
-# 1mm = 3.7795px at 96 DPI — rendered at 2x for crispness:
-#   72mm × 3.7795 × 2 = 544px wide
-#   75mm × 3.7795 × 2 = 567px tall
-RECEIPT_WIDTH_PX  = 544
-RECEIPT_HEIGHT_PX = 567  # 75mm at 2x
 
-# Hard character limit for the description.
+# ── Geometry ──────────────────────────────────────────────────────────────────
+# 1 mm = 3.7795 px at 96 DPI; rendered at 2× for crispness.
+
+RECEIPT_WIDTH_PX  = 544   # 72 mm × 3.7795 × 2
+RECEIPT_HEIGHT_PX = 567   # 75 mm × 3.7795 × 2
+
 DESCRIPTION_CHAR_LIMIT = 550
 
-# wkhtmltopdf binary (only needed if imgkit is being used)
 WKHTMLTOIMAGE_PATH = r"C:\Program Files\wkhtmltopdf\bin\wkhtmltoimage.exe"
 
 PRIORITY_LABELS = {
@@ -62,19 +55,17 @@ PRIORITY_LABELS = {
 }
 
 
-def truncate(text: str, limit: int = DESCRIPTION_CHAR_LIMIT) -> str:
-    """Hard-truncate text to the character limit."""
+# ── HTML builder ──────────────────────────────────────────────────────────────
+
+def _truncate(text: str, limit: int = DESCRIPTION_CHAR_LIMIT) -> str:
     return text[:limit]
 
 
 def build_html(title: str, description: str, priority: int) -> str:
-    """
-    Return a complete HTML string for the receipt.
-    Description is truncated to DESCRIPTION_CHAR_LIMIT before rendering.
-    """
+    """Return a complete HTML string for one receipt."""
     priority_label = PRIORITY_LABELS.get(priority, "UNKNOWN")
     timestamp      = datetime.now().strftime("%Y-%m-%d  %H:%M")
-    description    = truncate(description)
+    description    = _truncate(description)
 
     return f"""<!DOCTYPE html>
 <html>
@@ -99,9 +90,7 @@ def build_html(title: str, description: str, priority: int) -> str:
       justify-content: space-between;
     }}
 
-    .border {{
-      border-top: 2px solid black;
-    }}
+    .border     {{ border-top: 2px solid black; }}
 
     .title {{
       font-size: 34px;
@@ -165,89 +154,88 @@ def build_html(title: str, description: str, priority: int) -> str:
 </html>"""
 
 
+# ── File I/O ──────────────────────────────────────────────────────────────────
+
 def save_html(title: str, description: str, priority: int, path: str) -> str:
     """Write the receipt HTML to a file and return the path."""
-    html = build_html(title, description, priority)
     with open(path, "w", encoding="utf-8") as f:
-        f.write(html)
+        f.write(build_html(title, description, priority))
     return path
 
 
-def _render_png_imgkit(html: str, path: str) -> str | None:
-    """Render HTML to PNG using imgkit. Returns path or None on failure."""
-    if not IMGKIT_AVAILABLE:
-        return None
+# ── PNG rendering ─────────────────────────────────────────────────────────────
 
+def _render_via_imgkit(html: str, path: str) -> str | None:
+    if not _IMGKIT_AVAILABLE:
+        return None
     if not os.path.exists(WKHTMLTOIMAGE_PATH):
         return None
 
     try:
         config  = imgkit.config(wkhtmltoimage=WKHTMLTOIMAGE_PATH)
         options = {
-            "width":  str(RECEIPT_WIDTH_PX),
-            "height": str(RECEIPT_HEIGHT_PX),
+            "width":               str(RECEIPT_WIDTH_PX),
+            "height":              str(RECEIPT_HEIGHT_PX),
             "disable-smart-width": "",
-            "encoding": "UTF-8",
-            "format": "png",
+            "encoding":            "UTF-8",
+            "format":              "png",
         }
         imgkit.from_string(html, path, options=options, config=config)
         return path
     except Exception as e:
-        print(f"  imgkit failed: {e}")
+        print(f"  imgkit error: {e}")
         return None
 
 
-def _render_png_selenium(html: str, path: str) -> str | None:
-    """Render HTML to PNG using headless Chrome via Selenium. Returns path or None on failure."""
-    if not SELENIUM_AVAILABLE:
-        print("  ERROR: selenium or webdriver-manager not installed.")
+def _render_via_selenium(html: str, path: str) -> str | None:
+    if not _SELENIUM_AVAILABLE:
+        print("  ERROR: selenium / webdriver-manager not installed.")
         print("  Run: pip install selenium webdriver-manager")
         return None
 
     try:
+        import tempfile
+
         options = Options()
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
-        options.add_argument(f"--window-size={RECEIPT_WIDTH_PX},{RECEIPT_HEIGHT_PX + 100}")
+        options.add_argument(
+            f"--window-size={RECEIPT_WIDTH_PX},{RECEIPT_HEIGHT_PX + 100}"
+        )
 
-        # webdriver-manager auto-downloads the right ChromeDriver version
         service = Service(ChromeDriverManager().install())
         driver  = webdriver.Chrome(service=service, options=options)
 
-        # Write HTML to a temp file and load it
-        import tempfile
-        tmp_html = os.path.join(tempfile.gettempdir(), "receipt_preview", "_render.html")
+        tmp_dir  = os.path.join(tempfile.gettempdir(), "receipt_preview")
+        tmp_html = os.path.join(tmp_dir, "_render.html")
+        os.makedirs(tmp_dir, exist_ok=True)
+
         with open(tmp_html, "w", encoding="utf-8") as f:
             f.write(html)
 
         driver.get(f"file:///{tmp_html.replace(os.sep, '/')}")
-        time.sleep(0.5)  # let the page settle
+        time.sleep(0.5)
 
-        # Screenshot just the body element
-        body = driver.find_element(By.TAG_NAME, "body")
-        body.screenshot(path)
+        driver.find_element(By.TAG_NAME, "body").screenshot(path)
         driver.quit()
-
         return path
     except Exception as e:
-        print(f"  Selenium failed: {e}")
+        print(f"  Selenium error: {e}")
         return None
 
 
 def render_png(title: str, description: str, priority: int, path: str) -> str | None:
     """
-    Render the receipt HTML to a PNG image and return the path.
-    Tries imgkit first, falls back to Selenium if imgkit/wkhtmltopdf is unavailable.
-    Returns None if both methods fail.
+    Render the receipt to a PNG and return the path.
+    Tries imgkit first, falls back to Selenium if unavailable.
+    Returns None if both fail.
     """
-    html = build_html(title, description, priority)
+    html   = build_html(title, description, priority)
+    result = _render_via_imgkit(html, path)
 
-    # Try imgkit first (faster, no browser startup)
-    result = _render_png_imgkit(html, path)
-    if result:
-        return result
+    if result is None:
+        print("  imgkit unavailable, trying Selenium...")
+        result = _render_via_selenium(html, path)
 
-    # Fall back to Selenium
-    print("  imgkit unavailable, trying Selenium...")
-    return _render_png_selenium(html, path)
+    return result
