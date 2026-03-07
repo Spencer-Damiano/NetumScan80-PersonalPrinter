@@ -13,8 +13,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from core.receipt import Receipt, CHAR_WIDTH
-from tests.char_limit import build as build_ruler
+from core.receipt import Receipt
 
 
 # ── Edit this to change what gets printed ─────────────────────────────────────
