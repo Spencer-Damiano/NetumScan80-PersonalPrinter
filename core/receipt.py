@@ -44,12 +44,28 @@ class Priority(IntEnum):
     MEDIUM = 2
     HIGH   = 3
 
+    # The 4 is for D - day and N is for day of week (0-6, Monday–Sunday). might switch to 4 and N (1-7) if it turns out to be more intuitive.
+    MONDAY = 40
+    TUESSDAY = 41
+    WEDNESDAY = 42
+    THURSDAY = 43
+    FRIDAY = 44
+    SATURDAY = 45
+    SNUNDAY = 46
+
     def label(self) -> str:
         return {
             Priority.FUTURE: "NOTE",
             Priority.LOW:    "CRAWL",
             Priority.MEDIUM: "WALK",
             Priority.HIGH:   "RUN",
+            Priority.MONDAY: "MONDAY",
+            Priority.TUESSDAY: "TUESSDAY",
+            Priority.WEDNESDAY: "WEDNESDAY",
+            Priority.THURSDAY: "THURSDAY",
+            Priority.FRIDAY: "FRIDAY",
+            Priority.SATURDAY: "SATURDAY",
+            Priority.SNUNDAY: "SNUNDAY",
         }[self]
 
 
