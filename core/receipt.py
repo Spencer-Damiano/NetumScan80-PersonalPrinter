@@ -46,7 +46,7 @@ class Priority(IntEnum):
 
     # The 4 is for D - day and N is for day of week (0-6, Monday–Sunday). might switch to 4 and N (1-7) if it turns out to be more intuitive.
     MONDAY = 40
-    TUESSDAY = 41
+    TUESDAY = 41
     WEDNESDAY = 42
     THURSDAY = 43
     FRIDAY = 44
