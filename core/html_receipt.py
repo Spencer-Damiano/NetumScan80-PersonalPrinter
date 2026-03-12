@@ -48,10 +48,10 @@ DESCRIPTION_CHAR_LIMIT = 550
 WKHTMLTOIMAGE_PATH = r"C:\Program Files\wkhtmltopdf\bin\wkhtmltoimage.exe"
 
 PRIORITY_LABELS = {
-    0: "FUTURE / BREAKDOWN",
-    1: "LOW",
-    2: "MEDIUM",
-    3: "HIGH",
+    0: "NOTE",
+    1: "CRAWL",
+    2: "WALK",
+    3: "RUN",
 }
 
 
@@ -63,7 +63,7 @@ def _truncate(text: str, limit: int = DESCRIPTION_CHAR_LIMIT) -> str:
 
 def build_html(title: str, description: str, priority: int) -> str:
     """Return a complete HTML string for one receipt."""
-    priority_label = PRIORITY_LABELS.get(priority, "UNKNOWN")
+    priority_label = PRIORITY_LABELS.get(priority, "UNSET")
     timestamp      = datetime.now().strftime("%Y-%m-%d  %H:%M")
     description    = _truncate(description)
 

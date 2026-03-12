@@ -46,10 +46,10 @@ class Priority(IntEnum):
 
     def label(self) -> str:
         return {
-            Priority.FUTURE: "FUTURE / BREAKDOWN",
-            Priority.LOW:    "LOW",
-            Priority.MEDIUM: "MEDIUM",
-            Priority.HIGH:   "HIGH",
+            Priority.FUTURE: "NOTE",
+            Priority.LOW:    "CRAWL",
+            Priority.MEDIUM: "WALK",
+            Priority.HIGH:   "RUN",
         }[self]
 
 
