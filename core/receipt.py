@@ -51,7 +51,7 @@ class Priority(IntEnum):
     THURSDAY = 43
     FRIDAY = 44
     SATURDAY = 45
-    SNUNDAY = 46
+    SUNDAY = 46
 
     def label(self) -> str:
         return {
@@ -60,12 +60,12 @@ class Priority(IntEnum):
             Priority.MEDIUM: "WALK",
             Priority.HIGH:   "RUN",
             Priority.MONDAY: "MONDAY",
-            Priority.TUESSDAY: "TUESSDAY",
+            Priority.TUESDAY: "TUESSDAY",
             Priority.WEDNESDAY: "WEDNESDAY",
             Priority.THURSDAY: "THURSDAY",
             Priority.FRIDAY: "FRIDAY",
             Priority.SATURDAY: "SATURDAY",
-            Priority.SNUNDAY: "SNUNDAY",
+            Priority.SUNDAY: "SNUNDAY",
         }[self]
 
 
