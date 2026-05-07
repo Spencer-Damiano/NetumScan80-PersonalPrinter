@@ -207,3 +207,7 @@ marimo/_lsp/
 __marimo__/
 
 Tests/today.py
+
+# Claude Code
+.claude/worktrees/
+.claude/settings.local.json
