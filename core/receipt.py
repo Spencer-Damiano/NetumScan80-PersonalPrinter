@@ -118,7 +118,7 @@ class Receipt:
 
         # Vertically center within BODY_LINES using blank padding
         blank      = BODY_LINES - len(wrapped)
-        top_pad    = blank // 2
+        top_pad    = blank // 3
         bottom_pad = blank - top_pad
         return [""] * top_pad + wrapped + [""] * bottom_pad
 
