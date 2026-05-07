@@ -211,3 +211,6 @@ Tests/today.py
 # Claude Code
 .claude/worktrees/
 .claude/settings.local.json
+
+# Local work scripts (not for version control)
+work/
