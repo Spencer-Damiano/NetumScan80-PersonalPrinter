@@ -60,12 +60,12 @@ class Priority(IntEnum):
             Priority.MEDIUM: "WALK",
             Priority.HIGH:   "RUN",
             Priority.MONDAY: "MONDAY",
-            Priority.TUESDAY: "TUESSDAY",
+            Priority.TUESDAY: "TUESDAY",
             Priority.WEDNESDAY: "WEDNESDAY",
             Priority.THURSDAY: "THURSDAY",
             Priority.FRIDAY: "FRIDAY",
             Priority.SATURDAY: "SATURDAY",
-            Priority.SUNDAY: "SNUNDAY",
+            Priority.SUNDAY: "SUNDAY",
         }[self]
 
 
@@ -95,7 +95,7 @@ class Receipt:
         printer_name: str = "POS-80",
     ) -> None:
         if priority not in PRIORITY_LABELS:
-            raise ValueError(f"priority must be 0–3, got {priority!r}")
+            raise ValueError(f"invalid priority {priority!r}")
 
         self.title        = title.upper()
         self.description  = description
