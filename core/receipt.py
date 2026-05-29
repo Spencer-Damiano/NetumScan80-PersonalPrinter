@@ -45,13 +45,14 @@ class Priority(IntEnum):
     HIGH   = 3
 
     # The 4 is for D - day and N is for day of week (0-6, Sunday–Saturday). might switch to 4 and N (1-7, Mon-Sun) if it turns out to be more intuitive.
+    SUNDAY = 40
     MONDAY = 41
     TUESDAY = 42
     WEDNESDAY = 43
     THURSDAY = 44
     FRIDAY = 45
     SATURDAY = 46
-    SUNDAY = 40
+    
 
     def label(self) -> str:
         return {
